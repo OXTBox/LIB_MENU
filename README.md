@@ -38,8 +38,8 @@ on menuExploreHere pTarget    -- "Explore here..."
 
 The boards (Project Map, On Git or Not: `LIB_DEV/livecode/board_canvas.livecodescript`) use it.
 They load it themselves when they build: two folders above the board's stack is the projects
-folder, then `LIB_MENU/livecode/lib_menu.livecodescript`. Without it a board still draws, but its
-menus say in the help bar that LIB_MENU is missing.
+folder, then `LIB_MENU/livecode/lib_menu.livecodescript`. Without it a board still works: plain menus
+(no ending), the help bar says "Menus need LIB_MENU", and it writes its records itself.
 
 ## Menus from files (the owner's iGame3D way)
 
@@ -79,5 +79,5 @@ Example: `Menus/Default/Library.txt`.
 
 `OXT-BEYOND/tests/t43_lib_menu.txt` (headless, no window): 57 checks, all pass on OXT-Beyond's
 engine and the 9.6.3 server. It uses a throwaway Data folder (`Data.UseRoot`), never yours.
-The boards' test `t39_board_canvas.txt` (83 checks) runs the boards with this library in a work
+The boards' test `t39_board_canvas.txt` (89 checks, 6 of them with LIB_MENU absent) runs the boards with this library in a work
 folder of its own.

@@ -11,15 +11,15 @@
   `Scripts/Menus/` win file by file. Lines are `Head/Sub/Item`; `folders: <Data kind>` fills a menu
   from that folder when it opens; `kinds:` lists the Data kinds; one handler a menu; `Menu.Loaded()`
   and `Menu.Reset`. One example: `Menus/Default/Library.txt`.
-- Tests: t43 (57 checks), t39 (83, now in its own work folder: it no longer touches your real
+- Tests: t43 (57 checks), t39 (89, now in its own work folder: it no longer touches your real
   comments or decisions).
 
 ## For the owner
 
 - Try a board (Project Map or On Git or Not): click a box, pick "Explore here..." and
   "Leave comment...". They should work exactly as before.
-- Important: the boards now need this library. If LIB_MENU's `menu-steps` and LIB_DEV's
-  `on-git-or-not` are not used together (one merged, the other not), the board menus say
+- The boards work with or without this library: without it their menus are plain (no ending) and
+  the help bar says
   "Menus need LIB_MENU".
 - Look at `Menus/Default/Library.txt`: is this how you want a menu file to read?
 
