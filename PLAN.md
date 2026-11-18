@@ -60,3 +60,21 @@ labels, "append a record line", "Explore here" and the record formats above, use
 with menus (boards, Priority Tube, Status Browser, the games' pause menus), with one headless test.
 **Owner, 17 Nov:** its own LIB. "I like crafty reusable, user hackable procedural menu tricks."
 Still open: should game pause menus follow rule 1 too? [suggested: yes, in developer mode only].
+
+## 5. The owner's 2009 way: the model for step 2
+
+The owner, 17 Nov: "this is how I used to do it" — iGame3D's
+`Data/Scripts/Functions/Menus/` (11 Lua files, 2009-2022), "I really like my whole DATA path system".
+What it does, and what LIB_MENU keeps from it:
+
+| iGame3D 2009 | What it means | LIB_MENU |
+|---|---|---|
+| one file per menu (`file_menu_functions.lua`, `entities_menu_functions.lua`, ...) | add a file, get a menu | one menu = one small file in a Menus folder |
+| the items are a plain list (`entityMenuText={"camera","colors",...}`), grouped by path `"File/Save/Level"` | the menu's words are data, not code | menu lines are `Head/Sub/Item` paths, one a line |
+| one `fill_<Menu>` builds it, one `<menu>MenuPick(path)` answers it; `main_menu_callback` routes by the first word of the path | one router, one answer per menu | `Menu.Fill` reads the file; a pick sends `menuPick` with the whole path to the stack that owns it |
+| **the Library menu is the Data folder's own kinds** (BVH, Emitters, Fluid, FontPngs, GUI, Images, Levels, Scripts, Sounds, Text, Shaders, WIF, WTF), each opening a browser for that kind | **the folder tree is the menu**: make a folder in Data, the menu grows | a Library menu filled from the Data folder (LIB_DATA's `Data.Folder`), each kind opening its browser / "Explore here..." |
+| menus live in `Data/Scripts/Functions/Menus`, beside everything else the game loads | a user hacks menus the same way as levels or scripts: by files in Data | the Menus folder lives in the Data folder (`Data.Path("Menus", ...)`), shipped defaults copied there once |
+
+So step 2 ("menus from a text file a user can edit") becomes: menu files in the Data folder,
+the Library menu grown from the Data folder's kinds, and every menu still ending with
+"Leave comment..." / "Explore here..." (rule 1).
