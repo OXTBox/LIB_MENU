@@ -36,5 +36,5 @@
 1. A Library menu in a real stack (the Status Browser or a game's developer pause menu), built
    with `Menu.Load` + `Menu.Show "Library"`.
 2. The Priority Tube and the Status Browser use `Menu.WithEnd` (rule 1).
-3. A `Menus` kind in LIB_DATA (today: `Scripts/Menus`, which needs no change there).
+3. ~~A `Menus` kind in LIB_DATA~~ Done 18 Nov (LIB_DATA branch `data-menus`): `Menus/<game or app>/` + `Functions/`, `Data.MenuFolder(app [, true])`; step 0 points `Menu.Load` at it.
 4. Game pause menus follow rule 1 in developer mode only (still the owner's call)... We will do a "Game Popup Menu" review at a later date to see which game can get what. LIB_GAD main UI will have something for certain. 
