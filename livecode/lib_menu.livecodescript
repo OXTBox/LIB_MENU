@@ -4,10 +4,14 @@ script "LIB_MENU"
 --   start using stack "<path>/LIB_MENU/livecode/lib_menu.livecodescript"
 --
 -- Step 1, the rules every menu follows:
---   Menu.End()                  the ending: a separator, "Leave comment...", "Explore here..."
+--   Menu.End()                  the ending: a separator, "Leave comment...", "Explore here...", "Minimize"
 --   Menu.WithEnd(tMenu)         a menu's text with the ending after it (no menu writes it itself)
---   Menu.IsEnd(tItem)           true for the two ending lines
---   Menu.EndPick tItem, tTarget, tObject   sends menuLeaveComment / menuExploreHere tTarget to tObject
+--   Menu.IsEnd(tItem)           true for the three ending lines
+--   Menu.EndPick tItem, tTarget, tObject   sends menuLeaveComment / menuExploreHere tTarget to tObject;
+--                               "Minimize" LIB_MENU does itself (Menu.Minimize tObject's stack)
+--   Menu.Minimize tObject       the window of tObject's stack shrinks to a small widget (the whole app,
+--                               scaled down); any mouse down on it brings it back (Menu.Restore)
+--   Menu.Restore tObject        back to the size and place it had; Menu.IsMini(tObject) true while small
 --   Menu.Safe(tName)            a name made safe for a menu line (no ( ! - / & | commands)
 --   Menu.AppendLine tFile, tLine, tHeader  one record line; a new file starts with tHeader
 --   Menu.Explore tPath, tIsFolder          Explorer at a file (selected) or a folder, never waited for
@@ -39,15 +43,19 @@ script "LIB_MENU"
 local sMenus       -- name -> array: file, from, handler, lines
 local sFilled      -- "Name/Sub/Item" -> the folder a folder-filled item stands for (last Menu.Text)
 local sError
+local sRestoreQueue  -- the stacks whose mini window was clicked, restored once the click is over
 local sTestDefault, sTestUser
 
 constant kLeave = "Leave comment..."
 constant kExplore = "Explore here..."
+constant kMini = "Minimize"
+constant kMiniWidth = 220    -- the widget's width in pixels
+constant kMiniCover = "LIB_MENU_MiniCover"
 
 -------------------------------------------------------------------- step 1: the ending
 
 function Menu.End
-   return "-" & return & kLeave & return & kExplore
+   return "-" & return & kLeave & return & kExplore & return & kMini
 end Menu.End
 
 function Menu.WithEnd pMenu
@@ -56,7 +64,7 @@ function Menu.WithEnd pMenu
 end Menu.WithEnd
 
 function Menu.IsEnd pItem
-   return pItem is kLeave or pItem is kExplore
+   return pItem is kLeave or pItem is kExplore or pItem is kMini
 end Menu.IsEnd
 
 -- the stack that owns the menu answers: on menuLeaveComment pTarget / on menuExploreHere pTarget
@@ -69,12 +77,115 @@ command Menu.EndPick pItem, pTarget, pObject
       case kExplore
          dispatch "menuExploreHere" to pObject with pTarget
          break
+      case kMini
+         Menu.Minimize pObject
+         return "handled"
       default
          put "not an ending line: " & pItem into sError
          return "unhandled"
    end switch
    return it
 end Menu.EndPick
+
+-------------------------------------------------------------------- the ending: Minimize
+-- The owner (18 Nov): "Minimize to a small widget sized window with a menu option at the bottom of
+-- our popup and then pop the stack back to full size with any mousedown on the mini window."
+-- The window keeps showing the whole app, scaled down (its scaleFactor), under a clear cover that
+-- takes the next mouse down. The size and place it had are kept on the stack (cMenuMini...).
+
+command Menu.Minimize pObject
+   local tStack, tSF, tTL, tOld, tCard
+   put menuStackOf(pObject) into tStack
+   if tStack is empty then
+      put "no stack for " & pObject into sError
+      exit Menu.Minimize
+   end if
+   if Menu.IsMini(tStack) then exit Menu.Minimize
+   put the scaleFactor of tStack into tSF
+   put the topLeft of tStack into tTL
+   set the cMenuMiniSF of tStack to tSF
+   set the cMenuMiniTL of tStack to tTL
+   put the defaultStack into tOld
+   lock screen
+   lock messages
+   set the defaultStack to the short name of tStack
+   create graphic kMiniCover
+   set the style of it to "rectangle"
+   set the rect of it to the rect of this card
+   set the opaque of it to true
+   set the lineSize of it to 0
+   set the backgroundColor of it to "40,40,48"
+   set the blendLevel of it to 80
+   set the tooltip of it to "Click to bring the window back"
+   set the script of it to "on mouseDown" & return & "   Menu.Restore the long id of me" & return & \
+         "end mouseDown" & return & "on mouseUp" & return & "end mouseUp" & return & \
+         "on mouseDoubleDown" & return & "end mouseDoubleDown" & return & \
+         "on mouseDoubleUp" & return & "end mouseDoubleUp"
+   set the cMenuMiniCover of tStack to the long id of it
+   set the defaultStack to tOld
+   set the scaleFactor of tStack to min(tSF, kMiniWidth / the width of tStack)
+   set the topLeft of tStack to tTL
+   unlock messages
+   unlock screen
+end Menu.Minimize
+
+function Menu.IsMini pObject
+   local tStack
+   put menuStackOf(pObject) into tStack
+   if tStack is empty then return false
+   return the cMenuMiniSF of tStack is not empty
+end Menu.IsMini
+
+-- from the cover's mouseDown: the cover cannot be deleted while its own script runs, so the
+-- window comes back a moment later, when the click is over
+command Menu.Restore pObject
+   local tStack
+   put menuStackOf(pObject) into tStack
+   if tStack is empty then exit Menu.Restore
+   if tStack is not among the lines of sRestoreQueue then put tStack & return after sRestoreQueue
+   send "menuRestoreQueued" to me in 0 milliseconds
+end Menu.Restore
+
+on menuRestoreQueued
+   local tStack, tQueue
+   put sRestoreQueue into tQueue
+   put empty into sRestoreQueue
+   repeat for each line tStack in tQueue
+      if there is a tStack then menuRestoreNow tStack
+   end repeat
+end menuRestoreQueued
+
+private command menuRestoreNow pStack
+   local tCover, tSF, tTL
+   put the cMenuMiniSF of pStack into tSF
+   if tSF is empty then exit menuRestoreNow
+   put the cMenuMiniTL of pStack into tTL
+   put the cMenuMiniCover of pStack into tCover
+   lock screen
+   lock messages
+   if tCover is not empty then
+      if there is a tCover then delete tCover
+   end if
+   set the scaleFactor of pStack to tSF
+   set the topLeft of pStack to tTL
+   set the cMenuMiniSF of pStack to empty
+   set the cMenuMiniTL of pStack to empty
+   set the cMenuMiniCover of pStack to empty
+   unlock messages
+   unlock screen
+end menuRestoreNow
+
+-- the stack a control, card or stack belongs to (its long id), empty when there is none
+private function menuStackOf pObject
+   local tObj
+   put pObject into tObj
+   repeat while tObj is not empty
+      if there is not a tObj then return empty
+      if word 1 of the long id of tObj is "stack" then return the long id of tObj
+      put the long id of the owner of tObj into tObj
+   end repeat
+   return empty
+end menuStackOf
 
 -- menu text treats ( ! - / & and | as commands: keep them out of labels
 function Menu.Safe pText
