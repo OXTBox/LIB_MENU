@@ -75,6 +75,18 @@ What it does, and what LIB_MENU keeps from it:
 | **the Library menu is the Data folder's own kinds** (BVH, Emitters, Fluid, FontPngs, GUI, Images, Levels, Scripts, Sounds, Text, Shaders, WIF, WTF), each opening a browser for that kind | **the folder tree is the menu**: make a folder in Data, the menu grows | a Library menu filled from the Data folder (LIB_DATA's `Data.Folder`), each kind opening its browser / "Explore here..." |
 | menus live in `Data/Scripts/Functions/Menus`, beside everything else the game loads | a user hacks menus the same way as levels or scripts: by files in Data | the Menus folder lives in the Data folder (`Data.Path("Menus", ...)`), shipped defaults copied there once |
 
-So step 2 ("menus from a text file a user can edit") becomes: menu files in the Data folder,
+### 5b. The 2013 version: `Data/Scripts/Default/Menus` (the owner pointed here too)
+
+The same menus two years on (12 files; `Functions/Menus` is the older 2009 copy). What it adds:
+
+| iGame3D 2013 | What it means | LIB_MENU |
+|---|---|---|
+| **Default/** is the engine's shipped set; `default_Globals.lua` keeps a list of menu names (`gDefault_MenuFunctions`) and loads `Default/Menus/<name>_menu.lua` for each | the list of menus is data too; the folder name says "this is the factory set" | a `Default` Menus folder ships with LIB_MENU and is never edited; the user's own folder in Data wins over it, file by file |
+| every loaded file is written into `gInit_Function_Paths` (path, name); "reset to default simply runs this whole file" | a registry of what was loaded from where; reset = load the defaults again | `Menu.Loaded()` lists each menu and the file it came from; `Menu.Reset` reloads the Default set |
+| **the Wizard menu is `listFolders(Data/Wizards/)`**: each folder is an item, a pick opens that wizard (`OPEN_WIZARD_WINDOWS`) | not a list at all: **drop a folder in, the menu grows** | any menu line can be `folders: <Data kind>` and is filled from that Data folder at open time (Wizards, Games, Levels, ...) |
+| Library picks all go through one `UniversalBrowse(pick)` (one browser for every kind; Console, WIF and WTF get their own) | one answer for many items, special cases only where needed | a menu file may name one handler for all its items; the item path is passed along |
+| `main_menu` routes by the first word of the path, Wizard added with two lines | adding a whole menu is two lines in one router | the router needs no edit: the first word finds the menu file's handler |
+
+So step 2 ("menus from a text file a user can edit") becomes: a Default menu set plus the user's own menu files in the Data folder (his win), menus filled from Data folders at open time (the Wizard trick),
 the Library menu grown from the Data folder's kinds, and every menu still ending with
 "Leave comment..." / "Explore here..." (rule 1).
