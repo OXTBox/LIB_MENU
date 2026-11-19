@@ -41,6 +41,36 @@ They load it themselves when they build: two folders above the board's stack is 
 folder, then `LIB_MENU/livecode/lib_menu.livecodescript`. Without it a board still works: plain menus
 (no ending), the help bar says "Menus need LIB_MENU", and it writes its records itself.
 
+## Graphic labels, one popup button to rule them all (18 Nov 2026)
+
+The owner's design. A menu title (or, in a game, a sign, a door, a crate) is a plain graphic.
+A click on it (mouseUp, never mouseDown: the popup would close again at once) fills ONE hidden popup button on the card with the menu for what was clicked,
+and pops it there. Nothing else is a menu button, so no list ever takes the stack's colours:
+the popup is plain black on white, set on the template before it is made and again on the button.
+
+```
+get Menu.MakeTitle("File", "8,1,50,19")         -- a green title graphic that pops its menu
+set the cMenuText of it to "New" & return & "Open"   -- its items (or a menu file of that name)
+on menuPopPick pMenu, pItem   -- in the card or stack script: every pick comes here
+```
+
+| Handler | Does |
+|---|---|
+| `Menu.PopFor target, text, at` | pop the target's menu at its bottom-left (`at` = "mouse": at the mouse) |
+| `Menu.PopFill(target, text)` | the same, filled but not popped (for tests); the button |
+| `Menu.PopButton(object)` | the one popup button of the card, made the first time it is needed |
+| `Menu.PopPick item, button` | the popup's own menuPick: sends the pick on (below) |
+| `Menu.MakeTitle(menu, rect, ink, paper, group)` | a title graphic, filled so it takes clicks, that pops its menu |
+
+- Which menu: the target's `cMenu`, else its label, else its name.
+- Which items: the `text` you pass; else the menu file of that name (`Menu.Text`); else the target's `cMenuText`.
+- A pick from a menu file goes to that menu's handler (`Menu.Pick`). Any other pick is sent as
+  `menuPopPick menu, item` to the target, and passes up to its card and stack.
+- Games: keep the graphics, build the menu when the mouse goes down, from what was clicked.
+- The iGame3D XT editor's menu bar works this way now.
+- With no screen (a headless test) the popup cannot show: `Menu.PopFor` says "no screen" and the
+  button is still filled.
+
 ## Menus from files (the owner's iGame3D way)
 
 Menus live per game or app (the owner's 2009 iGame3D layout):
@@ -64,6 +94,7 @@ Library/-                          a separator
 Library/Kinds/kinds:               a submenu filled with the Data folder's kinds
 Library/Games/folders: Games       a submenu filled with the folders in Data/Games, when it opens
 Library/Wizards/folders: Scripts/Wizards
+Library/Data/folders:             "folders:" alone: the folders at the top of the Data folder
 ```
 
 Drop a folder into `Data/Games`, and the menu grows. Without a `handler:` line the handler is
@@ -84,10 +115,13 @@ that folder.
 
 Your menus need LIB_DATA in use (`Data.MenuFolder`); without it only the shipped set is read.
 Example: `Data/Default/Library/Menus/Library.txt` and its `Functions/library_functions.livecodescript`.
+A real stack: the iGame3D XT editor's Library menu, `Data/Default/Ig3dEditor/Menus/Library.txt` and its
+`Functions/ig3deditor_functions.livecodescript` (a pick on a folder shows it in the editor's own Library
+list; only "Explore here..." opens Explorer). Test: `t51_editor_library_menu.txt` (30 checks).
 
 ## Tests
 
-`OXT-BEYOND/tests/t43_lib_menu.txt` (headless, no window): 88 checks, all pass on OXT-Beyond's
+`OXT-BEYOND/tests/t43_lib_menu.txt` (headless, no window): 100 checks, all pass on OXT-Beyond's
 engine and the 9.6.3 server. It uses a throwaway Data folder (`Data.UseRoot`), never yours.
 The boards' test `t39_board_canvas.txt` (89 checks, 6 of them with LIB_MENU absent) runs the boards with this library in a work
 folder of its own.

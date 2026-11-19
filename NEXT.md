@@ -43,8 +43,25 @@
    `Menus/Functions/` (callbacks); `Menu.Load` takes the game or app name; user override the same
    shape in the Data folder; Library.txt moves under a `Library` app folder.~~ Done 18 Nov, branch `menu-folders`.
 
-1. A Library menu in a real stack (the Status Browser or a game's developer pause menu), built
-   with `Menu.Load` + `Menu.Show "Library"`.
+1. ~~A Library menu in a real stack~~ Done 18 Nov (branch `editor-library-menu`, here and in
+   LIB_EDITOR, waiting for you): the iGame3D XT editor (the owner's pick). Its Library menu comes from
+   `Data/Default/Ig3dEditor/Menus/Library.txt`: the old items (Models, Levels, Text, ... Set Data
+   Folder...) plus **Data** and **Games**, filled from the Data folder each time the menu opens.
+   A pick on a folder shows what is in it in the editor's own Library list (folders first, double-click
+   to go in, ".." back), not Explorer; only "Explore here..." opens Explorer, at that folder. This
+   also answers the "Later" note below for the editor. New: a `folders:` line with no kind = the
+   folders at the top of the Data folder. Without LIB_MENU the editor's menu is the old one.
+   Test t51 (30 checks, both engines); t43 88, t20 7, t37 30 still pass.
+1b. Done 18 Nov (branch `editor-library-menu`, waiting for you): **graphic labels, one popup button
+   to rule them all** (your design). The editor's menu lists were "extreme green" on Windows. Now
+   the titles are green graphics, and a mouse down fills one hidden popup button (plain black on
+   white) with that menu: `Menu.PopFor`, `Menu.PopFill`, `Menu.PopButton`, `Menu.PopPick`,
+   `Menu.MakeTitle`. A pick goes to the menu file's handler, or as `menuPopPick menu, item` to what
+   was clicked. Games can use it the same way: graphics always, the menu built at mouse down from
+   what was clicked. The editor keeps its own copy of the button for when LIB_MENU is not there.
+   Ctrl + letter shortcuts kept. Tests: t43 100, t51 36, t37 39, t20 7 checks, all pass on both
+   engines. **Not seen on screen**: the tests have no window. Please open the editor on Windows,
+   click a title, and say if the list reads well.
 2. The Priority Tube and the Status Browser use `Menu.WithEnd` (rule 1).
 3. ~~A `Menus` kind in LIB_DATA~~ Done 18 Nov (LIB_DATA branch `data-menus`): `Menus/<game or app>/` + `Functions/`, `Data.MenuFolder(app [, true])`; step 0 points `Menu.Load` at it.
 4. Game pause menus follow rule 1 in developer mode only (still the owner's call)... We will do a "Game Popup Menu" review at a later date to see which game can get what. LIB_GAD main UI will have something for certain. 

@@ -30,6 +30,7 @@ script "LIB_MENU"
 --     Library/Kinds/Images         a submenu "Kinds" with an item "Images"
 --     Library/-                    a separator
 --     Library/Games/folders: Games filled at open time with the folders in that Data kind
+--     Library/Data/folders:        ("folders:" alone) the folders at the top of the Data folder
 --                                  ("folders: Scripts/Wizards" = a subfolder of a kind)
 --     Library/Kinds/kinds:         filled with the Data folder's kinds (LIB_DATA's Data.Kinds)
 --   Functions/ files are plain xTalk script files, <anything>.livecodescript, starting with
@@ -48,6 +49,16 @@ script "LIB_MENU"
 --   Menu.Show tName, tButton    put the menu's text into a popup button and pop it up
 --   Menu.DefaultFolder(tApp, tFunctions), Menu.UserFolder(tApp, tFunctions)  where they come from
 --   Menu.Error()                why the last handler did nothing
+-- One popup button to rule them all (18 Nov): menu titles are graphics; a click (mouse UP) fills ONE
+-- hidden popup button of the card and pops it (plain colours, never the stack's):
+--   Menu.PopFor tTarget, tText, tAt   pop tTarget's menu (cMenu, else label, else name) at its
+--                               bottom-left (tAt "mouse": at the mouse); tText, else the file menu,
+--                               else the target's cMenuText. A pick: menuPopPick tMenu, tItem to
+--                               the target (a file menu: Menu.Pick, its own handler)
+--   Menu.PopFill(tTarget, tText) the same, filled but not popped (tests); the button's long id
+--   Menu.PopButton(tObject)     the one popup button of tObject's card, made on first need
+--   Menu.PopPick tItem, tButton the popup's menuPick (routes as above)
+--   Menu.MakeTitle(tMenu, tRect, tInk, tPaper, tGroup)  a green graphic title that pops its menu
 -- Without LIB_DATA in use the user's part is simply empty: only the shipped set is read.
 -- Test hook: Menu.UseFolders tDefault, tUser: the folders that hold <app>/Menus and <app>
 -- (empty = the normal ones: LIB_MENU/Data/Default and the Data folder's Menus).
@@ -421,6 +432,188 @@ command Menu.Show pName, pButton
    popup pButton at the mouseLoc
 end Menu.Show
 
+-------------------------------------------------------------------- one popup button to rule them all
+-- The owner (18 Nov): "graphic labels, one popup button to rule them all". A menu bar (or a game's
+-- sign, door, crate...) is plain graphics. A click on one (mouseUp: popping on mouseDown closes it
+-- again at once, the owner 18 Nov) fills the ONE hidden popup button
+-- of its card with the menu for what was clicked, and pops it there. Nothing else is a menu button,
+-- so no dropdown ever takes the stack's colours: the popup's colours are set here, plainly.
+--   on mouseUp                            -- in a graphic's script (Menu.MakeTitle writes this)
+--      Menu.PopFor the long id of me
+--   end mouseUp
+--   on menuPopPick pMenu, pItem           -- in the card or stack script: every pick comes here
+--      ...
+--   end menuPopPick
+-- Which menu: the target's cMenu property, else its label, else its short name.
+-- Which text: pText when given; else the loaded file menu of that name (Menu.Text); else the
+--   target's cMenuText property. A file menu filled here (no pText) is picked through Menu.Pick
+--   (its own handler, the ending); anything else sends menuPopPick pMenu, pItem to the target.
+--   pItem is as menuPick gives it: "Sub|Item" for a submenu item.
+
+constant kPopName = "LIB_MENU_Popup"
+constant kPopInk = "0,0,0"          -- plain black on white, like any system menu
+constant kPopPaper = "255,255,255"
+constant kPopHilite = "51,153,255"
+constant kPopBorder = "128,128,128"
+
+-- the one popup button of the card pObject's stack shows (made on first need, hidden); its long id
+function Menu.PopButton pObject
+   local tCard, tOld, tBtn, tStack
+   put menuCardOf(pObject) into tCard
+   if tCard is empty then
+      put "no card for " & pObject into sError
+      return empty
+   end if
+   if there is a button kPopName of tCard then
+      put the long id of button kPopName of tCard into tBtn
+   else
+      put the defaultStack into tOld
+      lock screen
+      lock messages
+      put menuStackOf(tCard) into tStack
+      set the defaultStack to the short name of tStack
+      -- colour the template BEFORE create (owner's rule): nothing is born in the stack's green
+      reset the templateButton
+      set the textColor of the templateButton to kPopInk
+      set the backgroundColor of the templateButton to kPopPaper
+      set the hiliteColor of the templateButton to kPopHilite
+      set the borderColor of the templateButton to kPopBorder
+      set the style of the templateButton to "menu"
+      set the menuMode of the templateButton to "popup"
+      set the visible of the templateButton to false
+      create button kPopName
+      put the long id of it into tBtn
+      reset the templateButton
+      set the defaultStack to tOld
+      unlock messages
+      unlock screen
+   end if
+   -- and again on the button itself, every time: nothing inherited, ever
+   set the style of tBtn to "menu"
+   set the menuMode of tBtn to "popup"
+   set the visible of tBtn to false
+   set the textColor of tBtn to kPopInk
+   set the backgroundColor of tBtn to kPopPaper
+   set the hiliteColor of tBtn to kPopHilite
+   set the borderColor of tBtn to kPopBorder
+   set the traversalOn of tBtn to false
+   if the script of tBtn is empty then
+      set the script of tBtn to "on menuPick pItem" & return & "   Menu.PopPick pItem, the long id of me" & return & "end menuPick"
+   end if
+   return tBtn
+end Menu.PopButton
+
+-- fill the one popup for pTarget (no popping): the button's long id; Menu.PopFor pops it too
+function Menu.PopFill pTarget, pText
+   local tBtn, tName, tFile, tErr
+   if pTarget is empty or there is not a pTarget then
+      put "no target " & pTarget into sError
+      return empty
+   end if
+   put the long id of pTarget into pTarget
+   put the cMenu of pTarget into tName
+   if tName is empty then
+      try
+         put the label of pTarget into tName
+      catch tErr
+         put empty into tName
+      end try
+   end if
+   if tName is empty then put the short name of pTarget into tName
+   put false into tFile
+   if pText is empty then
+      if sMenus[tName] is an array then
+         put Menu.Text(tName) into pText
+         put true into tFile
+      else
+         put the cMenuText of pTarget into pText
+      end if
+   end if
+   if pText is empty then
+      put "no menu text for " & tName into sError
+      return empty
+   end if
+   put Menu.PopButton(pTarget) into tBtn
+   if tBtn is empty then return empty
+   set the text of tBtn to pText
+   set the cMenuName of tBtn to tName
+   set the cMenuTarget of tBtn to pTarget
+   set the cMenuFile of tBtn to tFile
+   return tBtn
+end Menu.PopFill
+
+-- a click (mouseUp) on pTarget: its menu pops at its bottom-left (pAt "mouse": at the mouse)
+command Menu.PopFor pTarget, pText, pAt
+   local tBtn, tLoc, tErr
+   put Menu.PopFill(pTarget, pText) into tBtn
+   if tBtn is empty then return sError
+   if pAt is "mouse" then
+      put the mouseLoc into tLoc
+   else
+      put the left of pTarget & "," & the bottom of pTarget into tLoc
+   end if
+   try
+      popup tBtn at tLoc
+   catch tErr
+      put "the popup could not show (no screen?)" into sError
+      return "no screen"
+   end try
+   return empty
+end Menu.PopFor
+
+-- the popup's menuPick: to Menu.Pick for a file menu, else menuPopPick pMenu, pItem to the target
+-- (a target gone: to the popup's card). The result: what the target said.
+command Menu.PopPick pItem, pButton
+   local tName, tTarget
+   if pButton is empty then put the long id of the target into pButton
+   put the cMenuName of pButton into tName
+   put the cMenuTarget of pButton into tTarget
+   if tTarget is empty or there is not a tTarget then put the long id of the owner of pButton into tTarget
+   if the cMenuFile of pButton is true and sMenus[tName] is an array then
+      Menu.Pick tName, pItem, tTarget
+      return the result
+   end if
+   dispatch "menuPopPick" to tTarget with tName, pItem
+   return it
+end Menu.PopPick
+
+-- a green (or pInk) menu title: a graphic with its name showing that pops its menu (cMenu = pMenu)
+-- on a click. It is filled (pPaper, default dark green-black) because an unfilled graphic
+-- only takes clicks on its outline. pOwner: a group to make it in (empty: the card). Its long id.
+function Menu.MakeTitle pMenu, pRect, pInk, pPaper, pOwner
+   local tName
+   if pInk is empty then put "124,255,124" into pInk
+   if pPaper is empty then put "6,16,6" into pPaper
+   put "menuTitle_" & pMenu into tName
+   reset the templateGraphic
+   set the style of the templateGraphic to "rectangle"
+   set the foregroundColor of the templateGraphic to pInk
+   set the textColor of the templateGraphic to pInk
+   set the backgroundColor of the templateGraphic to pPaper
+   set the opaque of the templateGraphic to true
+   set the lineSize of the templateGraphic to 0
+   set the showName of the templateGraphic to true
+   if pOwner is empty then
+      create graphic tName
+   else
+      create graphic tName in pOwner
+   end if
+   reset the templateGraphic
+   set the label of it to pMenu
+   set the cMenu of it to pMenu
+   if pRect is not empty then set the rect of it to pRect
+   set the script of it to "on mouseUp" & return & "   Menu.PopFor the long id of me" & return & "end mouseUp"
+   return the long id of it
+end Menu.MakeTitle
+
+-- the card shown by pObject's stack (where its one popup lives), empty when none
+private function menuCardOf pObject
+   local tStack
+   put menuStackOf(pObject) into tStack
+   if tStack is empty then return empty
+   return the long id of this card of tStack
+end menuCardOf
+
 function Menu.Error
    return sError
 end Menu.Error
@@ -573,7 +766,11 @@ private command menuFill @xKids, pName, pParent, pSpec
    put item 2 to -1 of tKind into tSub
    put item 1 of tKind into tKind
    try
-      put Data.Folder(tKind, tSub) into tFolder
+      if tKind is empty then
+         put Data.Root() into tFolder     -- "folders:" alone: the folders at the top of the Data folder
+      else
+         put Data.Folder(tKind, tSub) into tFolder
+      end if
    catch tErr
       put empty into tFolder
    end try
@@ -581,7 +778,11 @@ private command menuFill @xKids, pName, pParent, pSpec
    filter tList without ".*"
    sort lines of tList
    if tList is empty then
-      put "(nothing in" && Menu.Safe(word 2 to -1 of pSpec) && "yet" & return after xKids[pParent]
+      if tKind is empty then
+         put "(nothing in the Data folder yet" & return after xKids[pParent]
+      else
+         put "(nothing in" && Menu.Safe(word 2 to -1 of pSpec) && "yet" & return after xKids[pParent]
+      end if
       exit menuFill
    end if
    repeat for each line tItem in tList

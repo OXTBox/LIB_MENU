@@ -1,0 +1,26 @@
+# The iGame3D XT editor's Library menu: the editor's own kinds, then the Data folder turned into
+# a menu (as in iGame3D 2009): make a folder in your Data folder, and the Data submenu grows.
+# One menu = one file. Lines are paths, Head/Sub/Item; the head is this file's name.
+# To change it, copy this file into your Data folder's Menus/Ig3dEditor/ and edit the copy:
+# your file wins over this one. The menu ends with "Explore here...": the only item that opens
+# Explorer (at the folder the Library list shows, else the Data folder).
+# What a pick does is in Functions/ig3deditor_functions.livecodescript beside this file (yours
+# can replace it the same way: Menus/Ig3dEditor/Functions/ in your Data folder).
+#
+# A pick on a folder-filled item (Data, Games) shows that folder in the editor's Library list:
+# its folders first, then its files. Double-click a folder there to go in, ".." to go back.
+handler: Ig3dEditorLibraryPick
+Library/Models
+Library/Levels
+Library/Text
+Library/-
+Library/Emitters
+Library/Images
+Library/Materials
+Library/Scripts
+Library/Sounds
+Library/-
+Library/Data/folders:
+Library/Games/folders: Games
+Library/-
+Library/Set Data Folder...
