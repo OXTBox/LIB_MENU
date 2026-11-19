@@ -14,6 +14,16 @@
 - Tests: t43 (57 checks), t39 (89, now in its own work folder: it no longer touches your real
   comments or decisions).
 
+- **Step 0** (18 Nov, a helper session, branch `menu-folders`, waiting for you): menus live per
+  game or app now. Shipped: `Data/Default/<game or app>/Menus/` (menu files) and `Menus/Functions/`
+  (the callbacks). Yours: the same in your Data folder, `Menus/<game or app>/` and its `Functions/`;
+  your file wins, file by file. `Menu.Load "DeadDays"` loads one game's menus; `Menu.Load` alone
+  still means the Library. Callback files are started as libraries when the menus load.
+  `Library.txt` moved to `Data/Default/Library/Menus/`, with its first callback file beside it.
+  This needs LIB_DATA's `data-menus` branch for your own files (without it, only the shipped menus).
+- Tests: t43 now 88 checks, all pass on both engines. t50 13 checks pass. t39 87 of 89: the 2 that
+  fail (On Git or Not's grey chip and ignored popup) failed the same way before this change.
+
 ## For the owner
 
 - Try a board (Project Map or On Git or Not): click a box, pick "Explore here..." and
@@ -29,9 +39,9 @@
 
 ## Next steps (suggested; sized in the Priority Tube, the owner sets the order)
 
-0. Move to the owner's layout: `Data/Default/<game or app>/Menus/` (item lists) +
+0. ~~Move to the owner's layout: `Data/Default/<game or app>/Menus/` (item lists) +
    `Menus/Functions/` (callbacks); `Menu.Load` takes the game or app name; user override the same
-   shape in the Data folder; Library.txt moves under a `Library` app folder.
+   shape in the Data folder; Library.txt moves under a `Library` app folder.~~ Done 18 Nov, branch `menu-folders`.
 
 1. A Library menu in a real stack (the Status Browser or a game's developer pause menu), built
    with `Menu.Load` + `Menu.Show "Library"`.

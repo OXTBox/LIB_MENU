@@ -17,9 +17,12 @@ script "LIB_MENU"
 --   Menu.Explore tPath, tIsFolder          Explorer at a file (selected) or a folder, never waited for
 --   Menu.WinPath(tPath)         slashes turned the Windows way
 --
--- Step 2, menus from files (the owner's iGame3D 2009/2013 way):
---   one menu = one text file <Name>.txt; the shipped set is LIB_MENU/Menus/Default, the user's own
---   files in the Data folder (Data.Folder("Scripts", "Menus")) win over it file by file.
+-- Step 2, menus from files (the owner's iGame3D 2009/2013 way), one set per game or app:
+--   LIB_MENU/Data/Default/<game or app>/Menus/            the shipped menus: one text file <Name>.txt a menu
+--   LIB_MENU/Data/Default/<game or app>/Menus/Functions/  the shipped callbacks those menus call
+--   <Data folder>/Menus/<game or app>/                    the user's own menus (LIB_DATA's Data.MenuFolder(app))
+--   <Data folder>/Menus/<game or app>/Functions/          the user's own callbacks (Data.MenuFolder(app, true))
+--   A user file wins over the shipped file of the same name, file by file (menus and callbacks alike).
 --   A menu file's lines:
 --     # a comment
 --     handler: LibraryMenuPick     the one handler every pick of this menu goes to (default <Name>MenuPick)
@@ -29,28 +32,40 @@ script "LIB_MENU"
 --     Library/Games/folders: Games filled at open time with the folders in that Data kind
 --                                  ("folders: Scripts/Wizards" = a subfolder of a kind)
 --     Library/Kinds/kinds:         filled with the Data folder's kinds (LIB_DATA's Data.Kinds)
---   Menu.Load                   read the Default set, then the user's files over it
---   Menu.Reset                  the Default set only (the user's files stay on disk, unread)
+--   Functions/ files are plain xTalk script files, <anything>.livecodescript, starting with
+--   script "<a stack name>"; they hold the handlers the menus name (on LibraryMenuPick pPath, pFolder).
+--   Menu.Load starts using each one (a library), so a pick reaches its handler from any stack.
+--   Menu.Load tApp              read that app's shipped menus, then the user's over them; start using
+--                               its callbacks (the user's file wins). No name = "Library" (the old way).
+--   Menu.Reset tApp             the shipped set only (the user's files stay on disk, unread)
+--   Menu.App()                  the game or app loaded now
 --   Menu.Loaded()               name TAB Default|User TAB file, one menu a line
+--   Menu.Functions()            file name TAB Default|User TAB file, one callback file a line
 --   Menu.Names()                the menus loaded, one a line
 --   Menu.Text(tName)            the menu's text for a popup/pulldown button, with the ending
 --   Menu.Pick tName, tItem, tObject   one router: sends the menu's handler the whole path
 --                               ("Library/Kinds/Images") and, for a folder-filled item, its folder
 --   Menu.Show tName, tButton    put the menu's text into a popup button and pop it up
+--   Menu.DefaultFolder(tApp, tFunctions), Menu.UserFolder(tApp, tFunctions)  where they come from
 --   Menu.Error()                why the last handler did nothing
--- Test hook: Menu.UseFolders tDefault, tUser (empty = the normal folders).
+-- Without LIB_DATA in use the user's part is simply empty: only the shipped set is read.
+-- Test hook: Menu.UseFolders tDefault, tUser: the folders that hold <app>/Menus and <app>
+-- (empty = the normal ones: LIB_MENU/Data/Default and the Data folder's Menus).
 
 local sMenus       -- name -> array: file, from, handler, lines
 local sFilled      -- "Name/Sub/Item" -> the folder a folder-filled item stands for (last Menu.Text)
 local sError
 local sRestoreQueue  -- the stacks whose mini window was clicked, restored once the click is over
 local sTestDefault, sTestUser
+local sApp           -- the game or app whose menus are loaded
+local sFunctions     -- file name -> array: file, from, stack (the callback libraries in use)
 
 constant kLeave = "Leave comment..."
 constant kExplore = "Explore here..."
 constant kMini = "Minimize"
 constant kMiniWidth = 220    -- the widget's width in pixels
 constant kMiniCover = "LIB_MENU_MiniCover"
+constant kDefaultApp = "Library"   -- Menu.Load with no name, as before step 0
 
 -------------------------------------------------------------------- step 1: the ending
 
@@ -254,40 +269,79 @@ command Menu.UseFolders pDefault, pUser
    put pUser into sTestUser
 end Menu.UseFolders
 
--- the shipped set, beside this library: LIB_MENU/Menus/Default
-function Menu.DefaultFolder
+-- the shipped set, beside this library: LIB_MENU/Data/Default/<app>/Menus (+ /Functions)
+function Menu.DefaultFolder pApp, pFunctions
    local tPath
-   if sTestDefault is not empty then return sTestDefault
-   put the effective fileName of stack "LIB_MENU" into tPath
-   set the itemDelimiter to "/"
-   return item 1 to -3 of tPath & "/Menus/Default"
+   put menuApp(pApp) into pApp
+   if pApp is empty then return empty
+   if sTestDefault is not empty then
+      put sTestDefault into tPath
+   else
+      put the effective fileName of stack "LIB_MENU" into tPath
+      set the itemDelimiter to "/"
+      put item 1 to -3 of tPath & "/Data/Default" into tPath
+   end if
+   put "/" & pApp & "/Menus" after tPath
+   if pFunctions is true then put "/Functions" after tPath
+   return tPath
 end Menu.DefaultFolder
 
--- the user's own menus: Scripts/Menus in the Data folder (empty when LIB_DATA is not in use)
-function Menu.UserFolder
+-- the user's own: Menus/<app> (+ /Functions) in the Data folder (empty when LIB_DATA is not in use)
+function Menu.UserFolder pApp, pFunctions
    local tPath, tErr
-   if sTestUser is not empty then return sTestUser
+   put menuApp(pApp) into pApp
+   if pApp is empty then return empty
+   if sTestUser is not empty then
+      put sTestUser & "/" & pApp into tPath
+      if pFunctions is true then put "/Functions" after tPath
+      return tPath
+   end if
    try
-      put Data.Folder("Scripts", "Menus") into tPath
+      put Data.MenuFolder(pApp, pFunctions is true) into tPath
    catch tErr
-      put "LIB_DATA is not in use: only the Default menus" into sError
+      put "LIB_DATA (with Data.MenuFolder) is not in use: only the shipped menus" into sError
       return empty
    end try
    return tPath
 end Menu.UserFolder
 
-command Menu.Reset
+function Menu.App
+   return sApp
+end Menu.App
+
+command Menu.Reset pApp
+   put menuApp(pApp) into pApp
+   if pApp is empty then return sError
+   put pApp into sApp
    put empty into sMenus
    put empty into sFilled
-   menuReadFolder Menu.DefaultFolder(), "Default"
+   menuReadFolder Menu.DefaultFolder(pApp), "Default"
+   menuUseFunctions pApp, false
+   return empty
 end Menu.Reset
 
-command Menu.Load
-   local tUser
-   Menu.Reset
-   put Menu.UserFolder() into tUser
-   if tUser is not empty then menuReadFolder tUser, "User"
+command Menu.Load pApp
+   put menuApp(pApp) into pApp
+   if pApp is empty then return sError
+   put pApp into sApp
+   put empty into sMenus
+   put empty into sFilled
+   menuReadFolder Menu.DefaultFolder(pApp), "Default"
+   menuReadFolder Menu.UserFolder(pApp), "User"
+   menuUseFunctions pApp, true
+   return empty
 end Menu.Load
+
+function Menu.Functions
+   local tNames, tName, tOut
+   put the keys of sFunctions into tNames
+   sort lines of tNames
+   repeat for each line tName in tNames
+      put tName & tab & sFunctions[tName]["from"] & tab & sFunctions[tName]["file"] & return after tOut
+   end repeat
+   delete the last char of tOut
+   return tOut
+end Menu.Functions
 
 function Menu.Loaded
    local tName, tOut
@@ -372,6 +426,65 @@ function Menu.Error
 end Menu.Error
 
 -------------------------------------------------------------------- private
+
+-- the game or app name: empty = the default app; a path is not a name
+private function menuApp pApp
+   if pApp is empty then return kDefaultApp
+   if pApp contains "/" or pApp contains "\" or pApp is ".." or pApp is "." then
+      put "not a game or app name: " & pApp into sError
+      return empty
+   end if
+   return pApp
+end menuApp
+
+-- the callback files: stop using the last app's, then start using this app's *.livecodescript
+-- (shipped first; a user file of the same name replaces it). A file whose stack name is taken by
+-- another file already in memory is skipped, and Menu.Error() says so.
+private command menuUseFunctions pApp, pWithUser
+   local tName, tA, tFolder, tFrom, tFiles, tFile, tPath, tStack, tLine
+   repeat for each key tName in sFunctions
+      put sFunctions[tName]["stack"] into tStack
+      if tStack is not empty and there is a stack tStack then
+         if tStack is among the lines of the stacksInUse then stop using stack tStack
+         delete stack tStack
+      end if
+   end repeat
+   put empty into sFunctions
+   repeat for each item tFrom in "Default,User"
+      if tFrom is "Default" then
+         put Menu.DefaultFolder(pApp, true) into tFolder
+      else
+         if pWithUser is not true then next repeat
+         put Menu.UserFolder(pApp, true) into tFolder
+      end if
+      if tFolder is empty or there is not a folder tFolder then next repeat
+      put files(tFolder) into tFiles
+      filter tFiles with "*.livecodescript"
+      repeat for each line tFile in tFiles
+         put tFolder & "/" & tFile into tA[tFile]["file"]
+         put tFrom into tA[tFile]["from"]
+      end repeat
+   end repeat
+   repeat for each key tFile in tA
+      put tA[tFile]["file"] into tPath
+      put line 1 of textDecode(URL ("binfile:" & tPath), "UTF-8") into tLine
+      if word 1 of tLine is not "script" then
+         put "not a script file (no script line first): " & tPath into sError
+         next repeat
+      end if
+      put word 2 to -1 of tLine into tStack
+      replace quote with empty in tStack
+      if there is a stack tStack then
+         if the effective fileName of stack tStack is not tPath then
+            put "stack " & tStack & " is in memory already (another file): " & tPath & " skipped" into sError
+            next repeat
+         end if
+      end if
+      start using stack tPath
+      put tStack into tA[tFile]["stack"]
+      put tA[tFile] into sFunctions[tFile]
+   end repeat
+end menuUseFunctions
 
 -- every <Name>.txt of a folder; a later folder's file replaces an earlier one of the same name
 private command menuReadFolder pFolder, pFrom
