@@ -49,7 +49,7 @@ script "LIB_MENU"
 --   Menu.Show tName, tButton    put the menu's text into a popup button and pop it up
 --   Menu.DefaultFolder(tApp, tFunctions), Menu.UserFolder(tApp, tFunctions)  where they come from
 --   Menu.Error()                why the last handler did nothing
--- One popup button to rule them all (18 Nov): menu titles are graphics; a mouse down fills ONE
+-- One popup button to rule them all (18 Nov): menu titles are graphics; a click (mouse UP) fills ONE
 -- hidden popup button of the card and pops it (plain colours, never the stack's):
 --   Menu.PopFor tTarget, tText, tAt   pop tTarget's menu (cMenu, else label, else name) at its
 --                               bottom-left (tAt "mouse": at the mouse); tText, else the file menu,
@@ -434,12 +434,13 @@ end Menu.Show
 
 -------------------------------------------------------------------- one popup button to rule them all
 -- The owner (18 Nov): "graphic labels, one popup button to rule them all". A menu bar (or a game's
--- sign, door, crate...) is plain graphics. A mouse down on one fills the ONE hidden popup button
+-- sign, door, crate...) is plain graphics. A click on one (mouseUp: popping on mouseDown closes it
+-- again at once, the owner 18 Nov) fills the ONE hidden popup button
 -- of its card with the menu for what was clicked, and pops it there. Nothing else is a menu button,
 -- so no dropdown ever takes the stack's colours: the popup's colours are set here, plainly.
---   on mouseDown                          -- in a graphic's script (Menu.MakeTitle writes this)
+--   on mouseUp                            -- in a graphic's script (Menu.MakeTitle writes this)
 --      Menu.PopFor the long id of me
---   end mouseDown
+--   end mouseUp
 --   on menuPopPick pMenu, pItem           -- in the card or stack script: every pick comes here
 --      ...
 --   end menuPopPick
@@ -541,7 +542,7 @@ function Menu.PopFill pTarget, pText
    return tBtn
 end Menu.PopFill
 
--- a mouse down on pTarget: its menu pops at its bottom-left (pAt "mouse": at the mouse)
+-- a click (mouseUp) on pTarget: its menu pops at its bottom-left (pAt "mouse": at the mouse)
 command Menu.PopFor pTarget, pText, pAt
    local tBtn, tLoc, tErr
    put Menu.PopFill(pTarget, pText) into tBtn
@@ -577,7 +578,7 @@ command Menu.PopPick pItem, pButton
 end Menu.PopPick
 
 -- a green (or pInk) menu title: a graphic with its name showing that pops its menu (cMenu = pMenu)
--- on a mouse down. It is filled (pPaper, default dark green-black) because an unfilled graphic
+-- on a click. It is filled (pPaper, default dark green-black) because an unfilled graphic
 -- only takes clicks on its outline. pOwner: a group to make it in (empty: the card). Its long id.
 function Menu.MakeTitle pMenu, pRect, pInk, pPaper, pOwner
    local tName
@@ -601,7 +602,7 @@ function Menu.MakeTitle pMenu, pRect, pInk, pPaper, pOwner
    set the label of it to pMenu
    set the cMenu of it to pMenu
    if pRect is not empty then set the rect of it to pRect
-   set the script of it to "on mouseDown" & return & "   Menu.PopFor the long id of me" & return & "end mouseDown"
+   set the script of it to "on mouseUp" & return & "   Menu.PopFor the long id of me" & return & "end mouseUp"
    return the long id of it
 end Menu.MakeTitle
 

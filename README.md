@@ -44,7 +44,7 @@ folder, then `LIB_MENU/livecode/lib_menu.livecodescript`. Without it a board sti
 ## Graphic labels, one popup button to rule them all (18 Nov 2026)
 
 The owner's design. A menu title (or, in a game, a sign, a door, a crate) is a plain graphic.
-A mouse down on it fills ONE hidden popup button on the card with the menu for what was clicked,
+A click on it (mouseUp, never mouseDown: the popup would close again at once) fills ONE hidden popup button on the card with the menu for what was clicked,
 and pops it there. Nothing else is a menu button, so no list ever takes the stack's colours:
 the popup is plain black on white, set on the template before it is made and again on the button.
 
