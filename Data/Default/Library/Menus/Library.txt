@@ -1,7 +1,9 @@
 # The Library menu: the Data folder's own kinds, as in iGame3D 2009 (Data/Scripts/Functions/Menus).
 # One menu = one file. Lines are paths, Head/Sub/Item; the head is this file's name.
-# To change it, copy this file into your Data folder's Scripts/Menus and edit the copy:
+# To change it, copy this file into your Data folder's Menus/Library/ and edit the copy:
 # your file wins over this one. Make a folder in Data, and the menu grows.
+# The handler is in Functions/library_functions.livecodescript beside this file (yours can
+# replace it the same way: Menus/Library/Functions/ in your Data folder).
 #
 # Every pick goes to one handler, with the whole path ("Library/Games/Antack") and, for an item
 # filled from a folder, that folder.
