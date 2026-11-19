@@ -30,6 +30,7 @@ script "LIB_MENU"
 --     Library/Kinds/Images         a submenu "Kinds" with an item "Images"
 --     Library/-                    a separator
 --     Library/Games/folders: Games filled at open time with the folders in that Data kind
+--     Library/Data/folders:        ("folders:" alone) the folders at the top of the Data folder
 --                                  ("folders: Scripts/Wizards" = a subfolder of a kind)
 --     Library/Kinds/kinds:         filled with the Data folder's kinds (LIB_DATA's Data.Kinds)
 --   Functions/ files are plain xTalk script files, <anything>.livecodescript, starting with
@@ -573,7 +574,11 @@ private command menuFill @xKids, pName, pParent, pSpec
    put item 2 to -1 of tKind into tSub
    put item 1 of tKind into tKind
    try
-      put Data.Folder(tKind, tSub) into tFolder
+      if tKind is empty then
+         put Data.Root() into tFolder     -- "folders:" alone: the folders at the top of the Data folder
+      else
+         put Data.Folder(tKind, tSub) into tFolder
+      end if
    catch tErr
       put empty into tFolder
    end try
@@ -581,7 +586,11 @@ private command menuFill @xKids, pName, pParent, pSpec
    filter tList without ".*"
    sort lines of tList
    if tList is empty then
-      put "(nothing in" && Menu.Safe(word 2 to -1 of pSpec) && "yet" & return after xKids[pParent]
+      if tKind is empty then
+         put "(nothing in the Data folder yet" & return after xKids[pParent]
+      else
+         put "(nothing in" && Menu.Safe(word 2 to -1 of pSpec) && "yet" & return after xKids[pParent]
+      end if
       exit menuFill
    end if
    repeat for each line tItem in tList

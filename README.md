@@ -64,6 +64,7 @@ Library/-                          a separator
 Library/Kinds/kinds:               a submenu filled with the Data folder's kinds
 Library/Games/folders: Games       a submenu filled with the folders in Data/Games, when it opens
 Library/Wizards/folders: Scripts/Wizards
+Library/Data/folders:             "folders:" alone: the folders at the top of the Data folder
 ```
 
 Drop a folder into `Data/Games`, and the menu grows. Without a `handler:` line the handler is
@@ -84,6 +85,9 @@ that folder.
 
 Your menus need LIB_DATA in use (`Data.MenuFolder`); without it only the shipped set is read.
 Example: `Data/Default/Library/Menus/Library.txt` and its `Functions/library_functions.livecodescript`.
+A real stack: the iGame3D XT editor's Library menu, `Data/Default/Ig3dEditor/Menus/Library.txt` and its
+`Functions/ig3deditor_functions.livecodescript` (a pick on a folder shows it in the editor's own Library
+list; only "Explore here..." opens Explorer). Test: `t51_editor_library_menu.txt` (30 checks).
 
 ## Tests
 
