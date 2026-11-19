@@ -48,3 +48,9 @@
 2. The Priority Tube and the Status Browser use `Menu.WithEnd` (rule 1).
 3. ~~A `Menus` kind in LIB_DATA~~ Done 18 Nov (LIB_DATA branch `data-menus`): `Menus/<game or app>/` + `Functions/`, `Data.MenuFolder(app [, true])`; step 0 points `Menu.Load` at it.
 4. Game pause menus follow rule 1 in developer mode only (still the owner's call)... We will do a "Game Popup Menu" review at a later date to see which game can get what. LIB_GAD main UI will have something for certain. 
+
+## Later (owner, 18 Nov late evening, after testing the boards)
+"Explore here..." works, but it opens a folder with 50+ scripts in it: "that open script in explorer
+menu is going to blow people's minds, 50+ scripts in one folder, ...works and NOTE: We will return to
+that later." Not now. When we return: show only what belongs to the thing clicked (its own files
+first, or a short list to pick from) instead of the whole folder.
