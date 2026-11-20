@@ -24,6 +24,10 @@
 - Tests: t43 now 88 checks, all pass on both engines. t50 13 checks pass. t39 87 of 89: the 2 that
   fail (On Git or Not's grey chip and ignored popup) failed the same way before this change.
 
+- **Open in** (19 Nov, branch `menu-open-in`, waiting for you): a submenu of apps per file type,
+  from folders (`Menus/File/Open/<type>/`, one file = one line: recipe, .lnk, .bat, .ps1 or xTalk).
+  Simulated users on V: (alex crowded, kenji code page, jordan shortcuts only). See `OPEN_IN.md`.
+
 ## For the owner
 
 - Try a board (Project Map or On Git or Not): click a box, pick "Explore here..." and

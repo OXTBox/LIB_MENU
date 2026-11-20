@@ -1,0 +1,2 @@
+# Windows Notepad: every PC has it. Turn it off with a file "~Notepad.txt" in your own script/ folder.
+run: %SystemRoot%\notepad.exe

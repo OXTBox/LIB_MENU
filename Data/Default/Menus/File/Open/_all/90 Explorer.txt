@@ -1,0 +1,3 @@
+# Explorer, with the file selected.
+run: %SystemRoot%\explorer.exe
+args: /select,"{file}"
