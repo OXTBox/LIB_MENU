@@ -1,0 +1,2 @@
+# The folder in Explorer.
+run: %SystemRoot%\explorer.exe

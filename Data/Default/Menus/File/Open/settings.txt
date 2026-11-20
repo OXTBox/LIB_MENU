@@ -1,0 +1,10 @@
+# Open in: settings. A copy in your Data folder's Menus/File/Open/ (or Users/<you>/Menus/File/Open/)
+# wins line by line.
+# max: entries shown before the rest go into a "More" submenu (0 = never)
+max: 8
+# all: where the entries for every file (_all) go: last, first or off
+all: last
+# missing: an entry whose "needs:" path is not there (app not installed): hide or grey
+missing: hide
+# edit: the last line "Edit this menu..." (opens your own folder for that file type): on or off
+edit: on

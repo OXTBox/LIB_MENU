@@ -1,0 +1,7 @@
+# Open in: groups of file types. A folder named after a group counts for all its types:
+# Open/script/ holds the entries for .livecodescript, .lua, .py ... files.
+# Yours (a types.txt in your own Open/ folder) adds to these.
+script: livecodescript lua py bat cmd ps1 txt md json csv tsv ini cfg
+image: png jpg jpeg bmp gif tga webp
+model: glb gltf obj fbx bvh
+sound: wav ogg mp3 flac
