@@ -107,10 +107,18 @@ Alex's Copy path and Copy WSL path (.ps1) gave the right paths on the clipboard;
 works. Not tried: the menu inside a stack (no stack uses it yet), the recipes, .lnk and .bat lines
 through `shell()` in OXT-Beyond, the IDE line.
 
-## For the owner
+## The owner's answers (19 Nov)
 
-1. Should **Open in** be part of the ending of every menu (with Leave comment / Explore here /
-   Minimize) whenever the thing clicked is a file? [suggested: yes]
-2. Which stack gets it first? [suggested: the iGame3D XT editor's Library list, then the boards]
-3. Your own entries: `Data\Users\<you>\...` on each PC, or `LIB_USERS\<you>\Data\Menus\File\Open`
-   in the projects (layer 4)? Both work now.
+1. **Yes**: Open in is part of the ending of every menu about a file or folder: `Menu.End(tFile)` /
+   `Menu.WithEnd(tMenu, tFile)` put it first, after the line; `Menu.EndPick` runs a pick from it.
+   Without a file, the ending is as before.
+2. **Project Map first** ("I have too many files to review"): every box's menu ends with Open in for
+   its file or folder, and each review file's own submenu (Open in Explorer / Reviewed / Feedback...)
+   has an Open in submenu too. LIB_DEV branch `project-map-open-in`, test t63 (15 checks).
+3. **LIB_USERS/BILL**: your lines are in `LIB_USERS\BILL\Data\Menus\File\Open\` (private, never in
+   git): VS Code at the line, Notepad++ at the line (Notepad off), Blender import, Copy path, Copy WSL
+   path, Tell Claude about this..., Terminal / WSL bash / VS Code for folders. The boards add that
+   folder as layer 4.
+
+The folders are read once per session (quick over the WSL bridge); a pick on "Edit this menu..."
+makes them be read again. A board marks a folder with a "/" at the end so nothing is looked up.

@@ -41,6 +41,9 @@ script "LIB_MENU_OpenIn"
 --   Menu.OpenInUser tName / Menu.OpenInUserName()  whose folder is layer 3
 --   Menu.OpenInFolders()          the layers in use, one folder a line
 --   Menu.OpenInAddFolder tFolder  / Menu.OpenInClearFolders   layer 4
+--   Menu.OpenInRefresh            read the folders again (they are read once, then kept)
+--   Paths may come either way round: C:\x, \\wsl$\..., /home/... (all handlers take any);
+--   a "/" (or "\") at the end says "a folder" without looking on the disk
 --   Menu.OpenInError()            why the last handler did nothing
 -- Test hooks: Menu.OpenInUseFolders tShipped, tPC, tUserRoot (folders, empty = the normal ones);
 --   Menu.OpenInDry true (never run anything: the result is "would run: ..."; always so off Windows);
@@ -54,6 +57,7 @@ local sDry
 local sEnv
 local sTestShipped, sTestPC, sTestUserRoot, sTestSet
 local sLast        -- the last menu built: ["file"], [label] -> kind TAB entry TAB grey
+local sCache       -- folder -> its files ("-" = no such folder), read once (a menu over the WSL bridge stays quick)
 
 constant kOpenIn = "Open in"
 constant kMore = "More"
@@ -83,7 +87,13 @@ end Menu.OpenInAddFolder
 
 command Menu.OpenInClearFolders
    put empty into sExtra
+   put empty into sCache
 end Menu.OpenInClearFolders
+
+-- forget what was read from the folders (an entry added or taken away while the app runs)
+command Menu.OpenInRefresh
+   put empty into sCache
+end Menu.OpenInRefresh
 
 command Menu.OpenInUseFolders pShipped, pPC, pUserRoot
    put pShipped into sTestShipped
@@ -150,6 +160,7 @@ end Menu.OpenInFolders
 -- label TAB kind TAB entry file TAB grey(true/false), one a line, in menu order
 function Menu.OpenInItems pFile
    local tSet, tTypes, tA, tOrder, tLine, tOut
+   put openPath(pFile) into pFile
    put openSettings() into tSet
    put openTypesFor(pFile) into tTypes
    -- the type's own entries (and its groups'), then _all (or first, or not at all)
@@ -172,6 +183,7 @@ end Menu.OpenInItems
 -- the submenu: "Open in" with the entries one tab in, a "More" submenu past max, the edit line last
 function Menu.OpenInText pFile
    local tSet, tItems, tLine, tN, tOut, tMore, tLabel, tShown
+   put openPath(pFile) into pFile
    put openSettings() into tSet
    put Menu.OpenInItems(pFile) into tItems
    put empty into sLast
@@ -207,6 +219,7 @@ end Menu.OpenInText
 -- a pick from a menu made with Menu.OpenInText; pItem as menuPick gives it
 command Menu.OpenInPick pFile, pItem, pLine
    local tLabel
+   put openPath(pFile) into pFile
    replace "|" with "/" in pItem
    set the itemDelimiter to "/"
    put item -1 of pItem into tLabel
@@ -223,6 +236,7 @@ end Menu.OpenInPick
 -- the command line that entry runs for that file (Windows); empty for an xTalk entry or no entry
 function Menu.OpenInCommand pFile, pLabel, pLine
    local tE, tKind, tEntry, tR, tWin, tWindow
+   put openPath(pFile) into pFile
    put openFind(pFile, pLabel) into tE
    if tE is empty then return empty
    set the itemDelimiter to tab
@@ -258,6 +272,7 @@ end Menu.OpenInCommand
 -- or not on Windows), "xTalk: <entry file>", or what went wrong.
 command Menu.OpenIn pFile, pLabel, pLine
    local tE, tCmd, tEntry, tErr
+   put openPath(pFile) into pFile
    put openFind(pFile, pLabel) into tE
    if tE is empty then
       put "no Open in entry " & pLabel & " for " & pFile into sError
@@ -320,7 +335,8 @@ end openSettings
 -- the type folders that count for this file, most particular first: its extension, then groups
 private function openTypesFor pFile
    local tSuffix, tOut, tF, tText, tLine, tGroup
-   if there is a folder pFile then return "_folder"
+   -- a folder: there now, or marked by a "/" at the end (a caller who knows, no disk check)
+   if the last char of pFile is "/" or there is a folder pFile then return "_folder"
    set the itemDelimiter to "/"
    put item -1 of pFile into tSuffix
    set the itemDelimiter to "."
@@ -355,9 +371,8 @@ private command openCollect pTypes, @xA, @xOrder
       add 1 to tTypeN
       repeat for each line tLayer in Menu.OpenInFolders()
          put tLayer & "/" & tType into tF
-         if there is not a folder tF then next repeat
-         put files(tF) into tFiles
-         sort lines of tFiles
+         put openListOf(tF) into tFiles
+         if tFiles is empty then next repeat
          repeat for each line tFile in tFiles
             if char 1 of tFile is "." then next repeat
             put openParse(tFile) into tParsed
@@ -481,6 +496,7 @@ end openSlash
 
 private function openFillIn pText, pFile, pLine
    local tFolder, tName, tSuffix
+   if the last char of pFile is "/" and the number of chars of pFile > 3 then delete the last char of pFile
    put openEnv(pText) into pText
    set the itemDelimiter to "/"
    put item 1 to -2 of pFile into tFolder
@@ -498,6 +514,7 @@ end openFillIn
 
 -- Windows slashes; /mnt/c/... as C:\...; any other WSL path (/home/...) as \\wsl$\Ubuntu\home\...
 private function openWin pPath
+   if the last char of pPath is "/" and the number of chars of pPath > 3 then delete the last char of pPath
    if pPath begins with "/mnt/" and char 7 of pPath is "/" and char 6 of pPath is among the chars of "abcdefghijklmnopqrstuvwxyz" then
       put toUpper(char 6 of pPath) & ":" & char 7 to -1 of pPath into pPath
    else if char 1 of pPath is "/" and char 2 of pPath is not "/" then
@@ -538,6 +555,7 @@ private function openEditFolder pFile
    end if
    put tRoot & "/" & Menu.OpenInUserName() & "/Menus/File/Open/" & tTypes into tF
    openMakeFolder tF
+   put empty into sCache   -- the person is about to add or take away entries
    try
       Menu.Explore tF, 1
       put the result into tErr
@@ -556,6 +574,28 @@ private command openMakeFolder pFolder
       create folder tSoFar
    end repeat
 end openMakeFolder
+
+-- a folder's files, sorted, from the cache (empty: no folder or nothing in it)
+private function openListOf pFolder
+   local tFiles
+   if sCache[pFolder] is empty then
+      if there is a folder pFolder then
+         put files(pFolder) into tFiles
+         sort lines of tFiles
+         put "+" & return & tFiles into sCache[pFolder]
+      else
+         put "-" into sCache[pFolder]
+      end if
+   end if
+   if sCache[pFolder] is "-" then return empty
+   return line 2 to -1 of sCache[pFolder]
+end openListOf
+
+-- one form inside: forward slashes ("\\wsl$\Ubuntu\x" -> "//wsl$/Ubuntu/x", "C:\x" -> "C:/x")
+private function openPath pPath
+   replace "\" with "/" in pPath
+   return pPath
+end openPath
 
 private function openRead pFile
    local tText

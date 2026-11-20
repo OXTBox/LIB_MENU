@@ -5,8 +5,10 @@ script "LIB_MENU"
 --
 -- Step 1, the rules every menu follows:
 --   Menu.End()                  the ending: a separator, "Leave comment...", "Explore here...", "Minimize"
---   Menu.WithEnd(tMenu)         a menu's text with the ending after it (no menu writes it itself)
---   Menu.IsEnd(tItem)           true for the three ending lines
+--   Menu.End(tFile)             the same, starting with an "Open in" submenu for that file or folder
+--                               (the owner, 19 Nov: every menu, whenever the thing is a file)
+--   Menu.WithEnd(tMenu [, tFile]) a menu's text with the ending after it (no menu writes it itself)
+--   Menu.IsEnd(tItem)           true for the ending lines ("Open in|..." too); Menu.EndFile() its file
 --   Menu.EndPick tItem, tTarget, tObject   sends menuLeaveComment / menuExploreHere tTarget to tObject;
 --                               "Minimize" LIB_MENU does itself (Menu.Minimize tObject's stack)
 --   Menu.Minimize tObject       the window of tObject's stack shrinks to a small widget (the whole app,
@@ -70,32 +72,68 @@ local sRestoreQueue  -- the stacks whose mini window was clicked, restored once 
 local sTestDefault, sTestUser
 local sApp           -- the game or app whose menus are loaded
 local sFunctions     -- file name -> array: file, from, stack (the callback libraries in use)
+local sEndFile       -- the file the last ending's "Open in" submenu was made for
 
 constant kLeave = "Leave comment..."
 constant kExplore = "Explore here..."
 constant kMini = "Minimize"
+constant kOpenIn = "Open in"
 constant kMiniWidth = 220    -- the widget's width in pixels
 constant kMiniCover = "LIB_MENU_MiniCover"
 constant kDefaultApp = "Library"   -- Menu.Load with no name, as before step 0
 
 -------------------------------------------------------------------- step 1: the ending
 
-function Menu.End
+-- pFile (optional): the file or folder the menu is about; then the ending starts with an
+-- "Open in" submenu (LIB_MENU/OPEN_IN.md, lib_menu_openin.livecodescript beside this file)
+function Menu.End pFile
+   local tOpen
+   put empty into sEndFile
+   if pFile is not empty and menuOpenInReady() then
+      put Menu.OpenInText(pFile) into tOpen
+      if tOpen is not empty then
+         put pFile into sEndFile
+         return "-" & return & tOpen & return & kLeave & return & kExplore & return & kMini
+      end if
+   end if
    return "-" & return & kLeave & return & kExplore & return & kMini
 end Menu.End
 
-function Menu.WithEnd pMenu
+function Menu.WithEnd pMenu, pFile
    if pMenu is not empty and the last char of pMenu is not return then put return after pMenu
-   return pMenu & Menu.End()
+   return pMenu & Menu.End(pFile)
 end Menu.WithEnd
 
+-- the file the last ending's "Open in" was made for
+function Menu.EndFile
+   return sEndFile
+end Menu.EndFile
+
 function Menu.IsEnd pItem
+   if pItem begins with kOpenIn & "|" then return true
    return pItem is kLeave or pItem is kExplore or pItem is kMini
 end Menu.IsEnd
+
+-- the "Open in" library beside this one, started once; false when it is not there
+private function menuOpenInReady
+   local tLib
+   if "LIB_MENU_OpenIn" is among the lines of the stacksInUse then return true
+   put the effective fileName of stack "LIB_MENU" into tLib
+   set the itemDelimiter to "/"
+   put item 1 to -2 of tLib & "/lib_menu_openin.livecodescript" into tLib
+   if there is not a file tLib then return false
+   start using stack tLib
+   return "LIB_MENU_OpenIn" is among the lines of the stacksInUse
+end menuOpenInReady
 
 -- the stack that owns the menu answers: on menuLeaveComment pTarget / on menuExploreHere pTarget
 command Menu.EndPick pItem, pTarget, pObject
    if pObject is empty then put the long id of the target into pObject
+   if pItem begins with kOpenIn & "|" then
+      if not menuOpenInReady() then return "unhandled"
+      Menu.OpenInPick sEndFile, pItem
+      return the result
+   end if
    switch pItem
       case kLeave
          dispatch "menuLeaveComment" to pObject with pTarget
