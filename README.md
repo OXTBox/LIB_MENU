@@ -125,3 +125,7 @@ list; only "Explore here..." opens Explorer). Test: `t51_editor_library_menu.txt
 engine and the 9.6.3 server. It uses a throwaway Data folder (`Data.UseRoot`), never yours.
 The boards' test `t39_board_canvas.txt` (89 checks, 6 of them with LIB_MENU absent) runs the boards with this library in a work
 folder of its own.
+
+## Licence
+
+GPL-3.0 (see `LICENSE`), because the xTalk work here is built on the GPL-licensed LiveCode Community 9 engine. Copyright (c) 2026 xAction.
