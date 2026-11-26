@@ -119,6 +119,10 @@ through `shell()` in OXT-Beyond, the IDE line.
    git): VS Code at the line, Notepad++ at the line (Notepad off), Blender import, Copy path, Copy WSL
    path, Tell Claude about this..., Terminal / WSL bash / VS Code for folders. The boards add that
    folder as layer 4.
+4. **Terminal here / WSL bash here are defaults** (owner, 26 Nov): every user gets them for folders
+   (`Default/Menus/File/Open/_folder/20 Terminal here.bat`, `30 WSL bash here.bat`). Terminal uses
+   `pushd`: cmd cannot stand in a `\\wsl$\...` folder (`start /d` fell back to C:\Windows), pushd gives it
+   a drive letter (Z:) for as long as the window is open.
 
 The folders are read once per session (quick over the WSL bridge); a pick on "Edit this menu..."
 makes them be read again. A board marks a folder with a "/" at the end so nothing is looked up.
